@@ -158,36 +158,14 @@ def main():
     
     # File upload option
     st.sidebar.header("📁 Data Upload")
-    uploaded_file = st.sidebar.file_uploader("Upload your sales data", type=['csv', 'xlsx', 'xls'])
+    uploaded_file = st.sidebar.file_uploader("Upload your sales data (Excel)", type=['xlsx', 'xls'])
     
     if uploaded_file is not None:
         try:
             file_extension = uploaded_file.name.split('.')[-1].lower()
             
-            if file_extension == 'csv':
-                # Try different encodings for CSV files
-                encodings_to_try = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252', 'utf-16']
-                df_loaded = None
-                
-                for encoding in encodings_to_try:
-                    try:
-                        uploaded_file.seek(0)  # Reset file pointer
-                        df_loaded = pd.read_csv(uploaded_file, encoding=encoding)
-                        st.sidebar.success(f"CSV file uploaded successfully! (Encoding: {encoding})")
-                        break
-                    except UnicodeDecodeError:
-                        continue
-                    except Exception as e:
-                        st.sidebar.error(f"Error with encoding {encoding}: {e}")
-                        continue
-                
-                if df_loaded is not None:
-                    df = df_loaded
-                else:
-                    st.sidebar.error("Could not read CSV file with any supported encoding.")
-                    
-            elif file_extension in ['xlsx', 'xls']:
-                # Handle Excel files
+            # Handle Excel files only
+            if file_extension in ['xlsx', 'xls']:
                 try:
                     df = pd.read_excel(uploaded_file, engine='openpyxl' if file_extension == 'xlsx' else 'xlrd')
                     st.sidebar.success("Excel file uploaded successfully!")
