@@ -11,7 +11,7 @@ st.set_page_config(page_title="Sales Trend Analysis", layout="wide")
 st.title("📈 Sales Trend Analysis Dashboard")
 st.markdown("*Fiscal Year: July to June | Week: Friday to Thursday*")
 
-# Sample data (you can replace this with your actual data loading)
+# Sample data
 @st.cache_data
 def load_sample_data():
     data = [
@@ -75,7 +75,6 @@ def prepare_data(df):
 
 def classify_season(month_num):
     """Classify months into seasons based on sales patterns"""
-    # You can adjust these based on your business patterns
     if month_num in [11, 12, 1]:  # Nov, Dec, Jan - Holiday season
         return "High Season"
     elif month_num in [6, 7, 8]:  # Jun, Jul, Aug - Summer/Low season
@@ -151,29 +150,53 @@ def create_yearly_trend(df, customer_filter=None):
     
     return fig, yearly_data
 
+def validate_data_structure(df):
+    """Validate the uploaded Excel file has required columns"""
+    required_columns = ['Posting Date', 'Item No', 'Description', 
+                       'Source No', 'Name', 'Invoiced Quantity', 'Sales Amount']
+    return all(col in df.columns for col in required_columns)
+
 # Main app
 def main():
     # Load and prepare data
     df = load_sample_data()
     
-    # File upload option
-    st.sidebar.header("📁 Data Upload")
-    uploaded_file = st.sidebar.file_uploader("Upload your sales data (Excel)", type=['xlsx', 'xls'])
+    # File upload option - Excel only
+    st.sidebar.header("📁 Data Upload (Excel Only)")
+    uploaded_file = st.sidebar.file_uploader(
+        "Upload your sales data (Excel only)", 
+        type=['xlsx', 'xls'],
+        help="Only Excel files (.xlsx, .xls) are accepted"
+    )
     
     if uploaded_file is not None:
+        # Validate file extension
+        file_extension = uploaded_file.name.split('.')[-1].lower()
+        if file_extension not in ['xlsx', 'xls']:
+            st.sidebar.error("Invalid file type. Please upload an Excel file (.xlsx or .xls)")
+            st.stop()
+        
         try:
-            file_extension = uploaded_file.name.split('.')[-1].lower()
+            # Read Excel file
+            with st.spinner('Loading Excel file...'):
+                uploaded_file.seek(0)  # Reset file pointer
+                engine = 'openpyxl' if file_extension == 'xlsx' else 'xlrd'
+                df_loaded = pd.read_excel(uploaded_file, engine=engine)
             
-            # Handle Excel files only
-            if file_extension in ['xlsx', 'xls']:
-                try:
-                    df = pd.read_excel(uploaded_file, engine='openpyxl' if file_extension == 'xlsx' else 'xlrd')
-                    st.sidebar.success("Excel file uploaded successfully!")
-                except Exception as e:
-                    st.sidebar.error(f"Error reading Excel file: {e}")
+            # Validate the loaded data structure
+            if not validate_data_structure(df_loaded):
+                missing = [col for col in ['Posting Date', 'Item No', 'Description', 
+                                          'Source No', 'Name', 'Invoiced Quantity', 'Sales Amount'] 
+                          if col not in df_loaded.columns]
+                st.sidebar.error(f"Missing required columns in Excel file: {', '.join(missing)}")
+                st.stop()
+            
+            df = df_loaded
+            st.sidebar.success("Excel file uploaded and validated successfully!")
             
         except Exception as e:
-            st.sidebar.error(f"Error loading file: {e}")
+            st.sidebar.error(f"Error reading Excel file: {str(e)}")
+            st.stop()
     
     # Prepare data
     df = prepare_data(df)
