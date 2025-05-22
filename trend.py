@@ -284,46 +284,76 @@ def main():
     # Display current selection
     st.markdown(f"### 📊 Analysis for: **{selected_customer}**")
     
-    # Weekly Trend Section
-    st.markdown("### 📅 Weekly Sales Trend")
+    # Create tabs for different trend views
+    tab1, tab2, tab3 = st.tabs(["📅 Weekly Trend", "📊 Monthly Trend", "📈 Yearly Trend"])
     
-    # Show active filters
-    active_filters = []
-    if selected_customer != "All":
-        active_filters.append(f"Customer: {selected_customer}")
-    if selected_fiscal_year != "All":
-        active_filters.append(f"Fiscal Year: {selected_fiscal_year}")
-    if selected_year != "All":
-        active_filters.append(f"Calendar Year: {selected_year}")
-    if selected_month != "All":
-        active_filters.append(f"Month: {selected_month}")
+    with tab1:
+        st.markdown("### Weekly Sales Trend")
+        
+        # Show active filters for weekly trend
+        active_filters = []
+        if selected_customer != "All":
+            active_filters.append(f"Customer: {selected_customer}")
+        if selected_fiscal_year != "All":
+            active_filters.append(f"Fiscal Year: {selected_fiscal_year}")
+        if selected_year != "All":
+            active_filters.append(f"Calendar Year: {selected_year}")
+        if selected_month != "All":
+            active_filters.append(f"Month: {selected_month}")
+        
+        if active_filters:
+            st.info(f"🔍 Active filters: {' | '.join(active_filters)}")
+        
+        # Generate weekly chart
+        with st.spinner("Loading weekly trend..."):
+            fig_weekly, weekly_data = create_weekly_trend(
+                df, selected_customer, selected_year, selected_month, selected_fiscal_year
+            )
+            st.plotly_chart(fig_weekly, use_container_width=True)
+        
+        # Show summary table if data exists
+        if not weekly_data.empty:
+            with st.expander("📋 Weekly Summary Table", expanded=False):
+                summary_df = weekly_data[['Week_Number', 'Fiscal_Week_Str', 'Abs_Sales', 'Invoiced Quantity']].copy()
+                summary_df.columns = ['Week #', 'Week Start', 'Sales Amount', 'Quantity']
+                summary_df['Sales Amount'] = summary_df['Sales Amount'].round(2)
+                st.dataframe(summary_df, use_container_width=True)
     
-    if active_filters:
-        st.info(f"🔍 Active filters: {' | '.join(active_filters)}")
+    with tab2:
+        st.markdown("### Monthly Sales Trend")
+        if selected_customer != "All":
+            st.info(f"🔍 Active filter: Customer: {selected_customer}")
+        
+        with st.spinner("Loading monthly trend..."):
+            fig_monthly, monthly_data = create_monthly_trend(df, selected_customer)
+            st.plotly_chart(fig_monthly, use_container_width=True)
+        
+        # Monthly summary table
+        if not monthly_data.empty:
+            with st.expander("📋 Monthly Summary Table", expanded=False):
+                summary_df = monthly_data.copy()
+                summary_df['Abs_Sales'] = summary_df['Abs_Sales'].round(2)
+                summary_df = summary_df[['Month', 'Season', 'Abs_Sales', 'Invoiced Quantity']]
+                summary_df.columns = ['Month', 'Season', 'Sales Amount', 'Quantity']
+                st.dataframe(summary_df, use_container_width=True)
     
-    # Generate weekly chart
-    with st.spinner("Loading weekly trend..."):
-        fig_weekly, weekly_data = create_weekly_trend(
-            df, selected_customer, selected_year, selected_month, selected_fiscal_year
-        )
-        st.plotly_chart(fig_weekly, use_container_width=True)
-    
-    # Show summary table if data exists
-    if not weekly_data.empty:
-        with st.expander("📋 Weekly Summary Table", expanded=False):
-            summary_df = weekly_data[['Week_Number', 'Fiscal_Week_Str', 'Abs_Sales', 'Invoiced Quantity']].copy()
-            summary_df.columns = ['Week #', 'Week Start', 'Sales Amount', 'Quantity']
-            summary_df['Sales Amount'] = summary_df['Sales Amount'].round(2)
-            st.dataframe(summary_df, use_container_width=True)
-
-    # Monthly and Yearly trends (less frequent updates)
-    st.markdown("### 📊 Monthly Sales Trend")
-    fig_monthly, _ = create_monthly_trend(df, selected_customer)
-    st.plotly_chart(fig_monthly, use_container_width=True)
-
-    st.markdown("### 📈 Yearly Sales Trend")
-    fig_yearly, _ = create_yearly_trend(df, selected_customer)
-    st.plotly_chart(fig_yearly, use_container_width=True)
+    with tab3:
+        st.markdown("### Yearly Sales Trend")
+        if selected_customer != "All":
+            st.info(f"🔍 Active filter: Customer: {selected_customer}")
+        
+        with st.spinner("Loading yearly trend..."):
+            fig_yearly, yearly_data = create_yearly_trend(df, selected_customer)
+            st.plotly_chart(fig_yearly, use_container_width=True)
+        
+        # Yearly summary table
+        if not yearly_data.empty:
+            with st.expander("📋 Yearly Summary Table", expanded=False):
+                summary_df = yearly_data.copy()
+                summary_df['Abs_Sales'] = summary_df['Abs_Sales'].round(2)
+                summary_df = summary_df[['Fiscal_Year', 'Month', 'Season', 'Abs_Sales', 'Invoiced_Quantity']]
+                summary_df.columns = ['Fiscal Year', 'Month', 'Season', 'Sales Amount', 'Quantity']
+                st.dataframe(summary_df, use_container_width=True)
 
 if __name__ == "__main__":
     main()
